@@ -10,6 +10,8 @@ import org.eclipse.jface.action.StatusLineManager;
 import org.eclipse.jface.action.ToolBarManager;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.window.ApplicationWindow;
 import org.eclipse.swt.SWT;
@@ -51,6 +53,7 @@ public class MainApp extends ApplicationWindow {
 	private Action action_2;
 	private Action action_1;
 	private Action action;
+	private List<Integer[]> mc_locations;
 	/**
 	 * Create the application window
 	 */
@@ -114,6 +117,21 @@ public class MainApp extends ApplicationWindow {
 		text_2.setLayoutData(fd_text_2);
 
 		tableViewer = new TableViewer(sashForm, SWT.FULL_SELECTION | SWT.BORDER);
+		tableViewer.addSelectionChangedListener(new ISelectionChangedListener() {
+			public void selectionChanged(SelectionChangedEvent event) {
+				int ix = table.getSelectionIndex();
+				if(ix>-1){
+					Integer[] mc_location = mc_locations.get(ix);
+					System.out.println(mc_location[0]+","+mc_location[1]);
+					try{
+						text_2.setSelectionRange(mc_location[0], mc_location[1]);
+					}catch(Exception ex){
+						//text_2.setSelectionRange(mc_location[0], 1);
+					}
+					text_2.showSelection();
+				}
+			}
+		});
 		tableViewer.addDoubleClickListener(new IDoubleClickListener() {
 			public void doubleClick(DoubleClickEvent arg0) {
 				List<String> matches = new ArrayList<String>();
@@ -192,6 +210,8 @@ public class MainApp extends ApplicationWindow {
 
 		action_4 = new Action("开始测试") {
 			public void run() {
+				if(text_1.getText().equals(""))
+					return;
 				int flag = 0;
 				for (TableColumn tc : table.getColumns()) {
 					tc.dispose();
@@ -200,13 +220,15 @@ public class MainApp extends ApplicationWindow {
 					flag |= Pattern.DOTALL;
 				if(ignoreCaseButton.getSelection())
 					flag |= Pattern.CASE_INSENSITIVE;
-				List<Integer[]> locations = ReTool.getMatchLocation(text_1.getText(), text_2.getText(), flag);
+				
+				mc_locations = ReTool.getMatchLocation(text_1.getText(), text_2.getText(), flag);
 				
 				text_2.setStyleRange(null);
-				for(Integer[] location : locations){
+				for(Integer[] location : mc_locations){
 					text_2.setStyleRange(getColorStyle(location[0], location[1], getShell().getDisplay().getSystemColor(SWT.COLOR_RED)));
-					
+					//text_2.setSelectionRange(location[0],location[1]);
 				}
+				//text_2.showSelection();
 				List<List<String>> result = ReTool.getMatches(text_1.getText(), text_2.getText(), flag);
 				if(null != result && result.size()>0){
 					int groupSize = result.get(0).size();
